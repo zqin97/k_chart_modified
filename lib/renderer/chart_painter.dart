@@ -346,12 +346,12 @@ class ChartPainter extends BaseChartPainter {
       //画右边
       TextPainter tp = getTextPainter(
           "── " + mMainLowMinValue.toStringAsFixed(fixedLength),
-          chartColors.minColor);
+          chartColors.minMaxColor);
       tp.paint(canvas, Offset(x, y - tp.height / 2));
     } else {
       TextPainter tp = getTextPainter(
           mMainLowMinValue.toStringAsFixed(fixedLength) + " ──",
-          chartColors.minColor);
+          chartColors.minMaxColor);
       tp.paint(canvas, Offset(x - tp.width, y - tp.height / 2));
     }
     x = translateXtoX(getX(mMainMaxIndex));
@@ -360,12 +360,12 @@ class ChartPainter extends BaseChartPainter {
       //画右边
       TextPainter tp = getTextPainter(
           "── " + mMainHighMaxValue.toStringAsFixed(fixedLength),
-          chartColors.maxColor);
+          chartColors.minMaxColor);
       tp.paint(canvas, Offset(x, y - tp.height / 2));
     } else {
       TextPainter tp = getTextPainter(
           mMainHighMaxValue.toStringAsFixed(fixedLength) + " ──",
-          chartColors.maxColor);
+          chartColors.minMaxColor);
       tp.paint(canvas, Offset(x - tp.width, y - tp.height / 2));
     }
   }
@@ -398,7 +398,7 @@ class ChartPainter extends BaseChartPainter {
           : this.chartColors.nowPriceDnColor;
     //先画横线
     double startX = 0;
-    final max = -mTranslateX + mWidth / scaleX;
+    final max = -mTranslateX + mDataLen / scaleX;
     final space =
         this.chartStyle.nowPriceLineSpan + this.chartStyle.nowPriceLineLength;
     while (startX < max) {

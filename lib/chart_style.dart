@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart' show Color;
 
 class ChartColors {
-  List<Color> bgColor = [Color(0xff18191d), Color(0xff18191d)];
+  List<Color> bgColor = [Color(0xffffffff), Color(0xffffffff)];
 
   Color kLineColor = Color(0xff4C86CD);
   Color lineFillColor = Color(0x554C86CD);
@@ -46,13 +46,13 @@ class ChartColors {
   Color infoWindowUpColor = Color(0xff00ff00);
   Color infoWindowDnColor = Color(0xffff0000);
 
-  Color hCrossColor = Color(0xffffffff);
-  Color vCrossColor = Color(0x1Effffff);
+  Color hCrossColor = Color(0xffff0000);
+  Color vCrossColor = Color(0x99E5E4E2);
   Color crossTextColor = Color(0xffffffff);
 
   //当前显示内最大和最小值的颜色
-  Color maxColor = Color(0xffffffff);
-  Color minColor = Color(0xffffffff);
+  Color minMaxColor = Color(0xff60738E);
+  //Color minColor = Color(0xffffffff);
 
   Color getMAColor(int index) {
     switch (index % 3) {

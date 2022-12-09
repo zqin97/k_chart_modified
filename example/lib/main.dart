@@ -44,7 +44,7 @@ class _MyHomePageState extends State<MyHomePage> {
   bool isChangeUI = false;
   bool _isTrendLine = false;
   bool _priceLeft = true;
-  VerticalTextAlignment _verticalTextAlignment = VerticalTextAlignment.left;
+  VerticalTextAlignment _verticalTextAlignment = VerticalTextAlignment.right;
 
   ChartStyle chartStyle = ChartStyle();
   ChartColors chartColors = ChartColors();
@@ -98,7 +98,7 @@ class _MyHomePageState extends State<MyHomePage> {
       shrinkWrap: true,
       children: <Widget>[
         Stack(children: <Widget>[
-          Container(
+          SizedBox(
             height: 450,
             width: double.infinity,
             child: KChartWidget(
@@ -107,7 +107,7 @@ class _MyHomePageState extends State<MyHomePage> {
               chartColors,
               isLine: isLine,
               onSecondaryTap: () {
-                print('Secondary Tap');
+                // print('Secondary Tap');
               },
               isTrendLine: _isTrendLine,
               mainState: _mainState,
@@ -122,7 +122,7 @@ class _MyHomePageState extends State<MyHomePage> {
               hideGrid: _hideGrid,
               isTapShowInfoDialog: false,
               verticalTextAlignment: _verticalTextAlignment,
-              maDayList: [1, 100, 1000],
+              maDayList: const [1, 100, 1000],
             ),
           ),
           if (showLoading)
@@ -226,8 +226,8 @@ class _MyHomePageState extends State<MyHomePage> {
     /*
      * 可以翻墙使用方法1加载数据，不可以翻墙使用方法2加载数据，默认使用方法1加载最新数据
      */
-    final Future<String> future = getChatDataFromInternet(period);
-    //final Future<String> future = getChatDataFromJson();
+    //final Future<String> future = getChatDataFromInternet(period);
+    final Future<String> future = getChatDataFromJson();
     future.then((String result) {
       solveChatData(result);
     }).catchError((_) {

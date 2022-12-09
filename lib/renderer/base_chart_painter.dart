@@ -192,7 +192,7 @@ abstract class BaseChartPainter extends CustomPainter {
     maxScrollX = getMinTranslateX().abs();
     setTranslateXFromScrollX(scrollX);
     mStartIndex = indexOfTranslateX(xToTranslateX(0));
-    mStopIndex = indexOfTranslateX(xToTranslateX(mWidth));
+    mStopIndex = indexOfTranslateX(xToTranslateX(mWidth - xFrontPadding));
     for (int i = mStartIndex; i <= mStopIndex; i++) {
       var item = datas![i];
       getMainMaxMinValue(item, i);
