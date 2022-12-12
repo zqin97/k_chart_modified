@@ -6,9 +6,11 @@ import 'package:http/http.dart' as http;
 import 'package:k_chart/chart_translations.dart';
 import 'package:k_chart/flutter_k_chart.dart';
 
-void main() => runApp(MyApp());
+void main() => runApp(const MyApp());
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -16,18 +18,18 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.green,
       ),
-      home: MyHomePage(title: 'Flutter Demo Home Page'),
+      home: const MyHomePage(title: 'Flutter Demo Home Page'),
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  MyHomePage({Key? key, this.title}) : super(key: key);
+  const MyHomePage({Key? key, this.title}) : super(key: key);
 
   final String? title;
 
   @override
-  _MyHomePageState createState() => _MyHomePageState();
+  State<StatefulWidget> createState() => _MyHomePageState();
 }
 
 class _MyHomePageState extends State<MyHomePage> {
@@ -38,6 +40,7 @@ class _MyHomePageState extends State<MyHomePage> {
   SecondaryState _secondaryState = SecondaryState.MACD;
   bool isLine = true;
   bool isChinese = true;
+  bool? loadMore;
   bool _hideGrid = false;
   bool _showNowPrice = true;
   List<DepthEntity>? _bids, _asks;
@@ -52,7 +55,7 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
-    getData('1day');
+    getData('chatData');
     rootBundle.loadString('assets/depth.json').then((result) {
       final parseJson = json.decode(result);
       final tick = parseJson['tick'] as Map<String, dynamic>;
@@ -75,20 +78,20 @@ class _MyHomePageState extends State<MyHomePage> {
     double amount = 0.0;
     bids.sort((left, right) => left.price.compareTo(right.price));
     //累加买入委托量
-    bids.reversed.forEach((item) {
+    for (var item in bids.reversed) {
       amount += item.vol;
       item.vol = amount;
       _bids!.insert(0, item);
-    });
+    }
 
     amount = 0.0;
     asks.sort((left, right) => left.price.compareTo(right.price));
     //累加卖出委托量
-    asks.forEach((item) {
+    for (var item in asks.reversed) {
       amount += item.vol;
       item.vol = amount;
       _asks!.add(item);
-    });
+    }
     setState(() {});
   }
 
@@ -107,9 +110,10 @@ class _MyHomePageState extends State<MyHomePage> {
               chartColors,
               isLine: isLine,
               onSecondaryTap: () {
-                // print('Secondary Tap');
+                print('Secondary Tap');
               },
               isTrendLine: _isTrendLine,
+              onLoadMore: loadMoreData,
               mainState: _mainState,
               volHidden: _volHidden,
               secondaryState: _secondaryState,
@@ -134,7 +138,7 @@ class _MyHomePageState extends State<MyHomePage> {
         ]),
         buildButtons(),
         if (_bids != null && _asks != null)
-          Container(
+          SizedBox(
             height: 230,
             width: double.infinity,
             child: DepthChart(_bids!, _asks!, chartColors),
@@ -174,17 +178,17 @@ class _MyHomePageState extends State<MyHomePage> {
             onPressed: () => _showNowPrice = !_showNowPrice),
         button("Customize UI", onPressed: () {
           setState(() {
-            this.isChangeUI = !this.isChangeUI;
-            if (this.isChangeUI) {
+            isChangeUI = !isChangeUI;
+            if (isChangeUI) {
               chartColors.selectBorderColor = Colors.red;
               chartColors.selectFillColor = Colors.red;
               chartColors.lineFillColor = Colors.red;
               chartColors.kLineColor = Colors.yellow;
             } else {
-              chartColors.selectBorderColor = Color(0xff6C7A86);
-              chartColors.selectFillColor = Color(0xff0D1722);
-              chartColors.lineFillColor = Color(0x554C86CD);
-              chartColors.kLineColor = Color(0xff4C86CD);
+              chartColors.selectBorderColor = const Color(0xff6C7A86);
+              chartColors.selectFillColor = const Color(0xff0D1722);
+              chartColors.lineFillColor = const Color(0x554C86CD);
+              chartColors.kLineColor = const Color(0xff4C86CD);
             }
           });
         }),
@@ -209,16 +213,15 @@ class _MyHomePageState extends State<MyHomePage> {
           setState(() {});
         }
       },
-      child: Text(text),
       style: TextButton.styleFrom(
-        primary: Colors.white,
-        minimumSize: const Size(88, 44),
+        foregroundColor: Colors.white, minimumSize: const Size(88, 44),
         padding: const EdgeInsets.symmetric(horizontal: 16.0),
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.all(Radius.circular(2.0)),
         ),
         backgroundColor: Colors.blue,
       ),
+      child: Text(text),
     );
   }
 
@@ -227,7 +230,7 @@ class _MyHomePageState extends State<MyHomePage> {
      * 可以翻墙使用方法1加载数据，不可以翻墙使用方法2加载数据，默认使用方法1加载最新数据
      */
     //final Future<String> future = getChatDataFromInternet(period);
-    final Future<String> future = getChatDataFromJson();
+    final Future<String> future = getChatDataFromJson(period);
     future.then((String result) {
       solveChatData(result);
     }).catchError((_) {
@@ -252,21 +255,42 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   // 如果你不能翻墙，可以使用这个方法加载数据
-  Future<String> getChatDataFromJson() async {
-    return rootBundle.loadString('assets/chatData.json');
+  Future<String> getChatDataFromJson(String path) async {
+    return rootBundle.loadString('assets/$path.json');
+  }
+
+  // convert list of json data into KLineEntity format
+  List<KLineEntity> jsonToKlineEntitiesConverter(List<dynamic> list) {
+    return list.map((item) => KLineEntity.fromJson(item as Map<String, dynamic>))
+      .toList()
+      .reversed
+      .toList()
+      .cast<KLineEntity>();
   }
 
   void solveChatData(String result) {
     final Map parseJson = json.decode(result) as Map<dynamic, dynamic>;
     final list = parseJson['data'] as List<dynamic>;
-    datas = list
-        .map((item) => KLineEntity.fromJson(item as Map<String, dynamic>))
-        .toList()
-        .reversed
-        .toList()
-        .cast<KLineEntity>();
+    final kLineEntities = jsonToKlineEntitiesConverter(list);
+    
+    if (datas != null) {
+      datas!.addAll(kLineEntities);
+    } else {
+        datas = kLineEntities;
+    }
     DataUtil.calculate(datas!);
     showLoading = false;
     setState(() {});
+  }
+
+  //Updating chart data when detect right/left scrollEnd
+  void loadMoreData(bool onLoad) {
+    
+    if (onLoad){
+      //right
+      getData('loadData');
+    } else {
+      //left
+    }
   }
 }
