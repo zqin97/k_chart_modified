@@ -27,7 +27,7 @@ or use latest：
 ```
 k_chart:
     git:
-      url: https://github.com/mafanwei/k_chart
+      url: https://github.com/zqin97/k_chart_modified
 ```
 #### Usage
 
