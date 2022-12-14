@@ -109,6 +109,7 @@ class _KChartWidgetState extends State<KChartWidget>
     return mScaleX;
   }
 
+  double mTopStart = 30, mBottomPadding = 20;
   double _lastScale = 1.0;
   bool isScale = false, isDrag = false, isLongPress = false, isOnTap = false;
 
@@ -164,7 +165,7 @@ class _KChartWidgetState extends State<KChartWidget>
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        mHeight = constraints.maxHeight;
+        mHeight = constraints.maxHeight - mBottomPadding;
         mWidth = constraints.maxWidth;
 
         return GestureDetector(
@@ -174,7 +175,7 @@ class _KChartWidgetState extends State<KChartWidget>
                 _painter.isInSecondaryRect(details.localPosition)) {
               widget.onSecondaryTap!();
             }
-
+        
             if (!widget.isTrendLine &&
                 _painter.isInMainRect(details.localPosition)) {
               isOnTap = true;
@@ -190,7 +191,7 @@ class _KChartWidgetState extends State<KChartWidget>
               if (!waitingForOtherPairofCords)
                 lines.add(TrendLine(
                     p1, Offset(-1, -1), trendLineMax!, trendLineScale!));
-
+        
               if (waitingForOtherPairofCords) {
                 var a = lines.last;
                 lines.removeLast();
@@ -268,11 +269,18 @@ class _KChartWidgetState extends State<KChartWidget>
               mSelectY =
                   mSelectY + (details.globalPosition.dy - changeinYposition!);
               changeinYposition = details.globalPosition.dy;
+              //to ensure selectY value nvr go out of the chart, refer to mTopStart and bottom Padding
+              if (mSelectY < mTopStart) {
+                mSelectY = mTopStart;
+              } else if (mSelectY > mHeight){
+                mSelectY = mHeight;
+              }
               notifyChanged();
             }
           },
           onLongPressEnd: (details) {
             isLongPress = false;
+            
             enableCordRecord = true;
             mInfoWindowStream?.sink.add(null);
             notifyChanged();
@@ -369,7 +377,7 @@ class _KChartWidgetState extends State<KChartWidget>
             if (entityAmount != null) entityAmount.toInt().toString()
           ];
           final dialogPadding = 4.0;
-          final dialogWidth = mWidth / 3;
+          final dialogWidth = mWidth / 4;
           return Container(
             margin: EdgeInsets.only(
                 left: snapshot.data!.isLeft

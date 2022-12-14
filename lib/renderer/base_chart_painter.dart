@@ -21,6 +21,7 @@ abstract class BaseChartPainter extends CustomPainter {
   bool volHidden;
   bool isTapShowInfoDialog;
   double scaleX = 1.0, scrollX = 0.0, selectX;
+  double scaleY = 1.0;
   bool isLongPress = false;
   bool isOnTap;
   bool isLine;
@@ -36,7 +37,7 @@ abstract class BaseChartPainter extends CustomPainter {
   double mVolMaxValue = double.minPositive, mVolMinValue = double.maxFinite;
   double mSecondaryMaxValue = double.minPositive,
       mSecondaryMinValue = double.maxFinite;
-  double mTranslateX = double.minPositive;
+  double mTranslateX = double.minPositive, mTranslateY = double.maxFinite;
   int mMainMaxIndex = 0, mMainMinIndex = 0;
   double mMainHighMaxValue = double.minPositive,
       mMainLowMinValue = double.maxFinite;
@@ -119,7 +120,7 @@ abstract class BaseChartPainter extends CustomPainter {
 
       drawText(canvas, datas!.last, 5);
       drawMaxAndMin(canvas);
-      drawNowPrice(canvas);
+      drawNowPrice(canvas, datas!.last);
 
       if (isLongPress == true || (isTapShowInfoDialog && isOnTap)) {
         drawCrossLineText(canvas, size);
@@ -152,7 +153,7 @@ abstract class BaseChartPainter extends CustomPainter {
   void drawMaxAndMin(Canvas canvas);
 
   //画当前价格
-  void drawNowPrice(Canvas canvas);
+  void drawNowPrice(Canvas canvas, KLineEntity point);
 
   //画交叉线
   void drawCrossLine(Canvas canvas, Size size);
@@ -290,8 +291,13 @@ abstract class BaseChartPainter extends CustomPainter {
 
   double xToTranslateX(double x) => -mTranslateX + x / scaleX;
 
+  double yToTranslateY(double y) => -mTranslateY + y / scaleY;
+
   int indexOfTranslateX(double translateX) =>
       _indexOfTranslateX(translateX, 0, mItemCount - 1);
+  
+  int indexOfTranslateY(double translateY) =>
+      _indexOfTranslateY(translateY, 0, mItemCount - 1);
 
   ///二分查找当前值的index
   int _indexOfTranslateX(double translateX, int start, int end) {
@@ -316,28 +322,56 @@ abstract class BaseChartPainter extends CustomPainter {
     }
   }
 
+    ///二分查找当前值的index
+  int _indexOfTranslateY(double translateY, int start, int end) {
+    if (end == start || end == -1) {
+      return start;
+    }
+    if (end - start == 1) {
+      double startValue = getY(start);
+      double endValue = getY(end);
+      return (translateY - startValue).abs() < (translateY - endValue).abs()
+          ? start
+          : end;
+    }
+    int mid = start + (end - start) ~/ 2;
+    double midValue = getY(mid);
+    if (translateY < midValue) {
+      return _indexOfTranslateY(translateY, start, mid);
+    } else if (translateY > midValue) {
+      return _indexOfTranslateY(translateY, mid, end);
+    } else {
+      return mid;
+    }
+  }
+
   ///根据索引索取x坐标
   ///+ mPointWidth / 2防止第一根和最后一根k线显示不���
   ///@param position 索引值
   double getX(int position) => position * mPointWidth + mPointWidth / 2;
 
+  double getY(int position) => position * mDisplayHeight - mTopPadding;
+
   KLineEntity getItem(int position) {
     return datas![position];
-    // if (datas != null) {
-    //   return datas[position];
-    // } else {
-    //   return null;
-    // }
   }
 
   ///scrollX 转换为 TranslateX
   void setTranslateXFromScrollX(double scrollX) =>
       mTranslateX = scrollX + getMinTranslateX();
 
+  void setTranslateYFromScrollY(double scrollY) =>
+      mTranslateY = scrollY + getMinTranslateY();
+
   ///获取平移的最小值
   double getMinTranslateX() {
     var x = -mDataLen + mWidth / scaleX - mPointWidth / 2 - xFrontPadding;
     return x >= 0 ? 0.0 : x;
+  }
+
+  double getMinTranslateY() {
+    var y = -mDisplayHeight + mDisplayHeight / scaleX - mPointWidth / 2;
+    return y >= 0 ? 0.0 : y;
   }
 
   ///计算长按后x的值，转换为index
@@ -363,14 +397,14 @@ abstract class BaseChartPainter extends CustomPainter {
   @override
   bool shouldRepaint(BaseChartPainter oldDelegate) {
     return true;
-//    return oldDelegate.datas != datas ||
-//        oldDelegate.datas?.length != datas?.length ||
-//        oldDelegate.scaleX != scaleX ||
-//        oldDelegate.scrollX != scrollX ||
-//        oldDelegate.isLongPress != isLongPress ||
-//        oldDelegate.selectX != selectX ||
-//        oldDelegate.isLine != isLine ||
-//        oldDelegate.mainState != mainState ||
-//        oldDelegate.secondaryState != secondaryState;
+  //  return oldDelegate.datas != datas ||
+  //      oldDelegate.datas?.length != datas?.length ||
+  //      oldDelegate.scaleX != scaleX ||
+  //      oldDelegate.scrollX != scrollX ||
+  //      oldDelegate.isLongPress != isLongPress ||
+  //      oldDelegate.selectX != selectX ||
+  //      oldDelegate.isLine != isLine ||
+  //      oldDelegate.mainState != mainState ||
+  //      oldDelegate.secondaryState != secondaryState;
   }
 }

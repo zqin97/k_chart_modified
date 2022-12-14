@@ -92,8 +92,7 @@ class ChartPainter extends BaseChartPainter {
       ..color = this.chartColors.selectFillColor;
     selectorBorderPaint = Paint()
       ..isAntiAlias = true
-      ..strokeWidth = 0.5
-      ..style = PaintingStyle.stroke
+      ..style = PaintingStyle.fill
       ..color = this.chartColors.selectBorderColor;
     nowPricePaint = Paint()
       ..strokeWidth = this.chartStyle.nowPriceLineWidth
@@ -255,72 +254,79 @@ class ChartPainter extends BaseChartPainter {
 
   @override
   void drawCrossLineText(Canvas canvas, Size size) {
-    var index = calculateSelectedX(selectX);
-    KLineEntity point = getItem(index);
+    var indexX = calculateSelectedX(selectX);
+    KLineEntity pointX = getItem(indexX);
 
-    TextPainter tp = getTextPainter(point.close, chartColors.crossTextColor);
+    //horizontal line text
+    TextPainter tp = getTextPainter(pointX.close, chartColors.crossTextColor);
     double textHeight = tp.height;
     double textWidth = tp.width;
 
-    double w1 = 5;
-    double w2 = 3;
-    double r = textHeight / 2 + w2;
-    double y = getMainY(point.close);
-    double x;
+    double paddingScreenSide = 3;
+    double paddingNearPeak = 1;
+    double paddingXPeak = 6;
+    double paddingY = 1.5;
+    double verticalDiff = textHeight / 2 + paddingY;
+    double peakX;
     bool isLeft = false;
-    if (translateXtoX(getX(index)) < mWidth / 2) {
+    // decide whether to stick with KlineEntity point or mouse point
+    double y = isTrendLine ? selectY : getMainY(pointX.close);
+
+    if (translateXtoX(getX(indexX)) < mWidth / 2) {
       isLeft = false;
-      x = 1;
-      Path path = new Path();
-      path.moveTo(x, y - r);
-      path.lineTo(x, y + r);
-      path.lineTo(textWidth + 2 * w1, y + r);
-      path.lineTo(textWidth + 2 * w1 + w2, y);
-      path.lineTo(textWidth + 2 * w1, y - r);
-      path.close();
-      canvas.drawPath(path, selectPointPaint);
-      canvas.drawPath(path, selectorBorderPaint);
-      tp.paint(canvas, Offset(x + w1, y - textHeight / 2));
+      peakX = textWidth + (paddingScreenSide + paddingNearPeak) + paddingXPeak;
+
+      canvas.drawPath(
+        Path()
+        ..moveTo(peakX, y)
+        ..lineTo(peakX - paddingXPeak, y + verticalDiff)
+        ..lineTo(0, y + verticalDiff)
+        ..lineTo(0, y - verticalDiff)
+        ..lineTo(peakX - paddingXPeak, y - verticalDiff)
+        ..close(),
+        selectorBorderPaint
+      );
+      tp.paint(canvas, Offset(paddingScreenSide, y - textHeight / 2));
     } else {
       isLeft = true;
-      x = mWidth - textWidth - 1 - 2 * w1 - w2;
-      Path path = new Path();
-      path.moveTo(x, y);
-      path.lineTo(x + w2, y + r);
-      path.lineTo(mWidth - 2, y + r);
-      path.lineTo(mWidth - 2, y - r);
-      path.lineTo(x + w2, y - r);
-      path.close();
-      canvas.drawPath(path, selectPointPaint);
-      canvas.drawPath(path, selectorBorderPaint);
-      tp.paint(canvas, Offset(x + w1 + w2, y - textHeight / 2));
+      peakX = mWidth - textWidth - (paddingScreenSide + paddingNearPeak) - paddingXPeak;
+
+      canvas.drawPath(
+        Path()
+        ..moveTo(peakX, y)
+        ..lineTo(peakX + paddingXPeak, y + verticalDiff)
+        ..lineTo(mWidth, y + verticalDiff)
+        ..lineTo(mWidth, y - verticalDiff)
+        ..lineTo(peakX + paddingXPeak, y - verticalDiff)
+        ..close(),
+        selectorBorderPaint
+      );
+      tp.paint(canvas, Offset(mWidth - tp.width - paddingScreenSide, y - textHeight / 2));
     }
 
+    // date text
     TextPainter dateTp =
-        getTextPainter(getDate(point.time), chartColors.crossTextColor);
+        getTextPainter(getDate(pointX.time), chartColors.crossTextColor);
     textWidth = dateTp.width;
-    r = textHeight / 2;
-    x = translateXtoX(getX(index));
+    verticalDiff = textHeight / 2;
+    peakX = translateXtoX(getX(indexX));
     y = size.height - mBottomPadding;
 
-    if (x < textWidth + 2 * w1) {
-      x = 1 + textWidth / 2 + w1;
-    } else if (mWidth - x < textWidth + 2 * w1) {
-      x = mWidth - 1 - textWidth / 2 - w1;
+    if (peakX < textWidth + 2 * paddingScreenSide) {
+      peakX = 1 + textWidth / 2 + paddingScreenSide;
+    } else if (mWidth - peakX < textWidth + 2 * paddingScreenSide) {
+      peakX = mWidth - 1 - textWidth / 2 - paddingScreenSide;
     }
     double baseLine = textHeight / 2;
     canvas.drawRect(
-        Rect.fromLTRB(x - textWidth / 2 - w1, y, x + textWidth / 2 + w1,
-            y + baseLine + r),
-        selectPointPaint);
-    canvas.drawRect(
-        Rect.fromLTRB(x - textWidth / 2 - w1, y, x + textWidth / 2 + w1,
-            y + baseLine + r),
+        Rect.fromLTRB(peakX - textWidth / 2 - paddingScreenSide, y, peakX + textWidth / 2 + paddingScreenSide,
+            y + baseLine + verticalDiff),
         selectorBorderPaint);
 
-    dateTp.paint(canvas, Offset(x - textWidth / 2, y));
+    dateTp.paint(canvas, Offset(peakX - textWidth / 2, y));
+
     //长按显示这条数据详情
-    sink?.add(InfoWindowEntity(point, isLeft: isLeft));
+    sink?.add(InfoWindowEntity(pointX, isLeft: isLeft));
   }
 
   @override
@@ -371,7 +377,7 @@ class ChartPainter extends BaseChartPainter {
   }
 
   @override
-  void drawNowPrice(Canvas canvas) {
+  void drawNowPrice(Canvas canvas, KLineEntity point) {
     if (!this.showNowPrice) {
       return;
     }
@@ -380,8 +386,7 @@ class ChartPainter extends BaseChartPainter {
       return;
     }
 
-    double value = datas!.last.close;
-    double y = getMainY(value);
+    double y = getMainY(point.close);
 
     //视图展示区域边界值绘制
     if (y > getMainY(mMainLowMinValue)) {
@@ -393,9 +398,9 @@ class ChartPainter extends BaseChartPainter {
     }
 
     nowPricePaint
-      ..color = value >= datas!.last.open
-          ? this.chartColors.nowPriceUpColor
-          : this.chartColors.nowPriceDnColor;
+      ..color = point.open > point.close
+          ? this.chartColors.nowPriceDnColor
+          : this.chartColors.nowPriceUpColor;
     //先画横线
     double startX = 0;
     final max = -mTranslateX + mDataLen / scaleX;
@@ -410,63 +415,67 @@ class ChartPainter extends BaseChartPainter {
     }
     //再画背景和文本
     TextPainter tp = getTextPainter(
-        value.toStringAsFixed(fixedLength), this.chartColors.nowPriceTextColor);
+        point.close.toStringAsFixed(fixedLength), this.chartColors.nowPriceTextColor);
 
-    double offsetX;
+    double peakX;
+    double paddingRight = 3;
+    double paddingLeft = 1;
+    double align = y - tp.height / 2;
+    double paddingXPeak = 6;
+    double paddingY = 1.5;
+    double verticalDiff = tp.height / 2 + paddingY;
     switch (verticalTextAlignment) {
       case VerticalTextAlignment.left:
-        offsetX = 0;
+        peakX = 0;
         break;
       case VerticalTextAlignment.right:
-        offsetX = mWidth - tp.width;
+        peakX = mWidth - tp.width - (paddingRight + paddingLeft) - paddingXPeak;
         break;
     }
-
-    double top = y - tp.height / 2;
-    canvas.drawRect(
-        Rect.fromLTRB(offsetX, top, offsetX + tp.width, top + tp.height),
-        nowPricePaint);
-    tp.paint(canvas, Offset(offsetX, top));
+    canvas.drawPath(
+        Path()
+        ..moveTo(peakX, y)
+        ..lineTo(peakX + paddingXPeak, y + verticalDiff)
+        ..lineTo(mWidth, y + verticalDiff)
+        ..lineTo(mWidth, y - verticalDiff)
+        ..lineTo(peakX + paddingXPeak, y - verticalDiff)
+        ..close(),
+        nowPricePaint
+      );
+    tp.paint(canvas, Offset(mWidth - tp.width - paddingRight, align));
   }
 
 //For TrendLine
   void drawTrendLines(Canvas canvas, Size size) {
     var index = calculateSelectedX(selectX);
-    Paint paintY = Paint()
-      ..color = Colors.orange
+    Paint paint = Paint()
+      ..color = Colors.pinkAccent
       ..strokeWidth = 1
       ..isAntiAlias = true;
     double x = getX(index);
     trendLineX = x;
 
     double y = selectY;
-    // getMainY(point.close);
+    // double bottomEnd = size.height + mBottomPadding + mTopPadding + 10 - mMainRect.height;
+    //limit trendline not to exceed outside the chart
+    // if (mVolRenderer !=null && mSecondaryRenderer == null){
+    //   bottomEnd = size.height - mBottomPadding - mChildPadding - mVolRect!.height;
+    // } else if (mVolRenderer == null && mSecondaryRenderer == null ) {
+    //   bottomEnd = size.height - mBottomPadding;
+    // }
+    
+    // if (selectY > bottomEnd) {
+    //   y = bottomEnd;
+    // }
 
     // k线图竖线
-    canvas.drawLine(Offset(x, mTopPadding),
-        Offset(x, size.height - mBottomPadding), paintY);
-    Paint paintX = Paint()
-      ..color = Colors.orangeAccent
-      ..strokeWidth = 1
-      ..isAntiAlias = true;
-    Paint paint = Paint()
-      ..color = Colors.orange
-      ..strokeWidth = 1.0
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round;
-    canvas.drawLine(Offset(-mTranslateX, y),
-        Offset(-mTranslateX + mWidth / scaleX, y), paintX);
-    if (scaleX >= 1) {
-      canvas.drawOval(
-          Rect.fromCenter(
-              center: Offset(x, y), height: 15.0 * scaleX, width: 15.0),
-          paint);
-    } else {
-      canvas.drawOval(
-          Rect.fromCenter(
-              center: Offset(x, y), height: 10.0, width: 10.0 / scaleX),
-          paint);
-    }
+    double max = size.height - mBottomPadding;
+    drawDashedLine(canvas, x, max, paint, false);
+
+    //Horizontal Line  
+    max = -mTranslateX + mDataLen / scaleX;
+    drawDashedLine(canvas, y, max, paint, true);
+
     if (lines.length >= 1) {
       lines.forEach((element) {
         var y1 = -((element.p1.dy - 35) / element.scale) + element.maxHeight;
@@ -479,7 +488,7 @@ class ChartPainter extends BaseChartPainter {
             p1,
             element.p2 == Offset(-1, -1) ? Offset(x, y) : p2,
             Paint()
-              ..color = Colors.yellow
+              ..color = Colors.red
               ..strokeWidth = 2);
       });
     }
@@ -527,6 +536,27 @@ class ChartPainter extends BaseChartPainter {
     TextPainter tp = TextPainter(text: span, textDirection: TextDirection.ltr);
     tp.layout();
     return tp;
+  }
+
+  //bool value to tell the program draw horizontal or veritcal line
+  void drawDashedLine(Canvas canvas, double point, double max, Paint paint, bool line) {
+    const int dashLength = 7;
+    const int dashSpace = 5;
+
+    double start = 0;
+    double end = point;
+
+    if (line) {
+      while (start < max) {
+        canvas.drawLine(Offset(start, end), Offset(start + dashLength, end), paint);
+        start += dashLength + dashSpace;
+      }
+    } else {
+        while (start < max) {
+        canvas.drawLine(Offset(end, start), Offset(end, start + dashLength), paint);
+        start += dashLength + dashSpace;
+      }
+    }
   }
 
   String getDate(int? date) => dateFormat(
